@@ -12,7 +12,7 @@ async function getNextSequenceValue(sequenceName) {
   const doc = await Counter.findOneAndUpdate(
     { id: sequenceName },
     { $inc: { seq: 1 } },
-    { returnDocument: 'after', upsert: true }
+    { new: true, upsert: true }
   );
   return doc.seq;
 }
@@ -28,7 +28,7 @@ const User = mongoose.model('User', userSchema);
 
 // Category Schema
 const categorySchema = new mongoose.Schema({
-  id: { type: Number, unique: true },
+  id: { type: Number, unique: true }, // Auto-incrementing numeric ID
   name: { type: String, required: true },
   description: { type: String }
 });
@@ -36,8 +36,8 @@ const Category = mongoose.model('Category', categorySchema);
 
 // Product Schema
 const productSchema = new mongoose.Schema({
-  id: { type: Number, unique: true },
-  categoryId: { type: Number, required: true },
+  id: { type: Number, unique: true }, // Auto-incrementing numeric ID
+  categoryId: { type: Number, required: true }, // Number to match category.id
   name: { type: String, required: true },
   price: { type: Number, required: true },
   stockQuantity: { type: Number, required: true },
@@ -50,16 +50,16 @@ const Product = mongoose.model('Product', productSchema);
 
 // Order Schema
 const orderSchema = new mongoose.Schema({
-  id: { type: Number, unique: true },
+  id: { type: Number, unique: true }, // Auto-incrementing numeric ID
   name: { type: String, required: true },
   phone: { type: String, required: true },
   email: { type: String, required: true },
   address: { type: String, required: true },
   totalAmount: { type: Number, required: true },
-  status: {
-    type: String,
-    enum: ['Pending', 'Processing', 'Completed', 'Cancelled'],
-    default: 'Pending'
+  status: { 
+    type: String, 
+    enum: ['Pending', 'Processing', 'Completed', 'Cancelled'], 
+    default: 'Pending' 
   },
   items: [{
     productId: { type: Number, required: true },

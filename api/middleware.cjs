@@ -4,7 +4,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'learts-secret-key-123456';
 
 function authenticateAdmin(req, res, next) {
   const authHeader = req.headers['authorization'];
-
+  
   if (!authHeader) {
     return res.status(401).json({
       success: false,
@@ -12,6 +12,7 @@ function authenticateAdmin(req, res, next) {
     });
   }
 
+  // Expecting format: Bearer <token>
   const parts = authHeader.split(' ');
   if (parts.length !== 2 || parts[0] !== 'Bearer') {
     return res.status(401).json({
@@ -24,7 +25,7 @@ function authenticateAdmin(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    req.user = decoded; // Attach user info to request
     next();
   } catch (error) {
     return res.status(401).json({

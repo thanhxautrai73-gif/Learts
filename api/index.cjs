@@ -30,11 +30,6 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-  console.error('❌ MONGODB_URI is not set in environment variables!');
-  process.exit(1);
-}
-
 // CORS - cho phép tất cả origin (frontend Vercel sẽ gọi vào backend Vercel khác domain)
 app.use(cors({
   origin: '*',
@@ -49,7 +44,13 @@ app.use(express.json());
 let isConnected = false;
 
 async function connectToDatabase() {
-  if (isConnected) return;
+  if (isConnected && mongoose.connection.readyState === 1) return;
+  
+  if (!MONGODB_URI) {
+    console.error('❌ MONGODB_URI is not set in environment variables!');
+    throw new Error('MONGODB_URI is not set');
+  }
+
   try {
     await mongoose.connect(MONGODB_URI);
     isConnected = true;
@@ -103,7 +104,7 @@ app.use(async (req, res, next) => {
     await connectToDatabase();
     next();
   } catch (err) {
-    res.status(503).json({ success: false, message: 'Database connection failed.' });
+    res.status(503).json({ success: false, message: 'Database connection failed.', error: err.message });
   }
 });
 
@@ -402,8 +403,8 @@ app.get('/api/health', (req, res) => {
   res.json({ success: true, message: 'Learts Backend API is running!', timestamp: new Date().toISOString() });
 });
 
-// Chạy server cục bộ (Vercel sẽ không gọi app.listen)
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+// Chạy server cục bộ
+if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`Backend server is running on http://localhost:${PORT}`);
   });
