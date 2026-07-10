@@ -92,7 +92,9 @@ export const AdminUsers: React.FC = () => {
               <thead className="table-light text-uppercase small font-weight-bold">
                 <tr>
                   <th className="px-4 py-3">Username</th>
+                  <th className="px-4 py-3">Full Name</th>
                   <th className="px-4 py-3">Email Address</th>
+                  <th className="px-4 py-3">Phone</th>
                   <th className="px-4 py-3">Registration Date</th>
                   <th className="px-4 py-3 text-center">Actions</th>
                 </tr>
@@ -100,12 +102,12 @@ export const AdminUsers: React.FC = () => {
               <tbody>
                 {users.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-5 text-muted">
+                    <td colSpan={6} className="text-center py-5 text-muted">
                       No admin users found.
                     </td>
                   </tr>
                 ) : (
-                  users.map((user) => (
+                  users.map((user: any) => (
                     <tr key={user._id}>
                       <td className="px-4 py-3 font-weight-bold">
                         {user.username}
@@ -115,7 +117,9 @@ export const AdminUsers: React.FC = () => {
                           </span>
                         )}
                       </td>
+                      <td className="px-4 py-3">{user.fullName || 'N/A'}</td>
                       <td className="px-4 py-3 text-muted">{user.email}</td>
+                      <td className="px-4 py-3 text-muted">{user.phone || 'N/A'}</td>
                       <td className="px-4 py-3 text-muted">
                         {new Date(user.createdAt).toLocaleDateString()} {new Date(user.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </td>

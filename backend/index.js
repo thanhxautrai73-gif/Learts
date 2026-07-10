@@ -119,10 +119,10 @@ app.use(async (req, res, next) => {
 // POST /api/auth/register
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, fullName, phone } = req.body;
 
-    if (!username || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Missing username, email or password.' });
+    if (!username || !email || !password || !fullName || !phone) {
+      return res.status(400).json({ success: false, message: 'Missing fields. Please enter username, email, password, full name, and phone number.' });
     }
 
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
@@ -133,7 +133,13 @@ app.post('/api/auth/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = new User({ username, email, password: hashedPassword });
+    const newUser = new User({ 
+      username, 
+      email, 
+      password: hashedPassword,
+      fullName,
+      phone
+    });
     await newUser.save();
 
     res.status(201).json({

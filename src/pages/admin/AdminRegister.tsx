@@ -6,6 +6,8 @@ import { adminRegister } from '../../services/api';
 export const AdminRegister: React.FC = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -13,7 +15,7 @@ export const AdminRegister: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !email.trim() || !password || !confirmPassword) {
+    if (!username.trim() || !email.trim() || !fullName.trim() || !phone.trim() || !password || !confirmPassword) {
       toast.error('Please fill in all fields.');
       return;
     }
@@ -30,7 +32,7 @@ export const AdminRegister: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await adminRegister(username, email, password);
+      await adminRegister(username, email, password, fullName, phone);
       toast.success('Registration successful! Please login.');
       navigate('/admin/login');
     } catch (err: any) {
@@ -114,6 +116,60 @@ export const AdminRegister: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="e.g. admin@learts.com"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid var(--color-border)',
+                backgroundColor: 'var(--color-light-bg)',
+                color: 'var(--color-dark)',
+                fontSize: '0.95rem',
+              }}
+              required
+            />
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '15px' }}>
+            <label style={{ 
+              display: 'block', 
+              fontSize: '0.85rem', 
+              fontWeight: 500, 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.05em', 
+              marginBottom: '6px',
+              color: 'var(--color-dark)'
+            }}>Full Name</label>
+            <input 
+              type="text" 
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="e.g. Jane Doe"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid var(--color-border)',
+                backgroundColor: 'var(--color-light-bg)',
+                color: 'var(--color-dark)',
+                fontSize: '0.95rem',
+              }}
+              required
+            />
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '15px' }}>
+            <label style={{ 
+              display: 'block', 
+              fontSize: '0.85rem', 
+              fontWeight: 500, 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.05em', 
+              marginBottom: '6px',
+              color: 'var(--color-dark)'
+            }}>Phone Number</label>
+            <input 
+              type="tel" 
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 0912345678"
               style={{
                 width: '100%',
                 padding: '10px 12px',

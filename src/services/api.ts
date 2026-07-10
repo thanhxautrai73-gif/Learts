@@ -134,11 +134,13 @@ export const createOrder = async (orderData: OrderInput): Promise<{ message: str
 };
 
 // Admin Auth Services
-export const adminRegister = async (username: string, email: string, password: string): Promise<{ message: string }> => {
+export const adminRegister = async (username: string, email: string, password: string, fullName: string, phone: string): Promise<{ message: string }> => {
   const response = await api.post<{ success: boolean; message: string }>('/auth/register', {
     username,
     email,
     password,
+    fullName,
+    phone,
   });
   return response.data;
 };
