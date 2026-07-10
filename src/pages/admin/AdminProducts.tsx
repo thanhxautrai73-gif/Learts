@@ -1,587 +1,551 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  Plus, Search, Edit2, Trash2, Filter, ChevronDown,
+  Package, Tag, DollarSign, Box, X, Check, Image as ImageIcon,
+  ChevronLeft, ChevronRight, AlertCircle, RefreshCw
+} from 'lucide-react';
 import toast from 'react-hot-toast';
-import { 
-  getProducts, 
-  getCategories, 
-  createProduct, 
-  updateProduct, 
-  deleteProduct 
+import {
+  getProducts,
+  getCategories,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  Product,
+  Category
 } from '../../services/api';
-import type { Product, Category } from '../../services/api';
+
+const PAGE_SIZE = 10;
+
+const EMPTY_FORM = {
+  name: '',
+  categoryId: 1,
+  price: '',
+  originalPrice: '',
+  stockQuantity: '',
+  imageUrl: '',
+  description: '',
+  tag: ''
+};
 
 export const AdminProducts: React.FC = () => {
-  const navigate = useNavigate();
-  
-  // Data States
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Pagination States
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const limit = 8;
-
-  // Modal / Form States
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  
-  // Form fields
-  const [name, setName] = useState('');
-  const [categoryId, setCategoryId] = useState<number>(0);
-  const [price, setPrice] = useState('');
-  const [stockQuantity, setStockQuantity] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [description, setDescription] = useState('');
-  const [originalPrice, setOriginalPrice] = useState('');
-  const [tag, setTag] = useState('');
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState<number | ''>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [sortBy, setSortBy] = useState('');
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
 
-  // Fetch Categories & Products
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    fetchProducts(page);
-  }, [page]);
-
-  const fetchCategories = async () => {
-    try {
-      const data = await getCategories();
-      setCategories(data);
-      if (data.length > 0) {
-        setCategoryId(data[0].id);
-      }
-    } catch (err: any) {
-      toast.error('Failed to load categories.');
-    }
-  };
-
-  const fetchProducts = async (pageNum: number) => {
+  const fetchProducts = async (page = 1, q = searchQuery, catId = filterCategory, sort = sortBy) => {
     setLoading(true);
     try {
-      const response = await getProducts({ page: pageNum, limit });
-      setProducts(response.products);
-      setTotalPages(response.totalPages);
-      setTotalItems(response.totalItems);
-    } catch (err: any) {
-      toast.error('Failed to load products.');
+      const params: any = { page, limit: PAGE_SIZE };
+      if (q) params.q = q;
+      if (catId) params.categoryId = catId;
+      if (sort) params.sort = sort;
+      const data = await getProducts(params);
+      setProducts(data.products);
+      setTotalItems(data.totalItems);
+      setTotalPages(data.totalPages);
+      setCurrentPage(data.currentPage);
+    } catch {
+      toast.error('Không thể tải sản phẩm');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenAddModal = () => {
-    setEditingProduct(null);
-    setName('');
-    if (categories.length > 0) {
-      setCategoryId(categories[0].id);
-    }
-    setPrice('');
-    setStockQuantity('');
-    setImageUrl('');
-    setDescription('');
-    setOriginalPrice('');
-    setTag('');
-    setIsModalOpen(true);
+  useEffect(() => {
+    getCategories().then(setCategories);
+    fetchProducts();
+  }, []);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      setCurrentPage(1);
+      fetchProducts(1, val, filterCategory, sortBy);
+    }, 400);
   };
 
-  const handleOpenEditModal = (product: Product) => {
+  const handleFilterChange = (catId: number | '') => {
+    setFilterCategory(catId);
+    setCurrentPage(1);
+    fetchProducts(1, searchQuery, catId, sortBy);
+  };
+
+  const handleSortChange = (sort: string) => {
+    setSortBy(sort);
+    fetchProducts(currentPage, searchQuery, filterCategory, sort);
+  };
+
+  const openAddModal = () => {
+    setEditingProduct(null);
+    setForm({ ...EMPTY_FORM, categoryId: categories[0]?.id ?? 1 });
+    setShowModal(true);
+  };
+
+  const openEditModal = (product: Product) => {
     setEditingProduct(product);
-    setName(product.name);
-    setCategoryId(product.categoryId);
-    setPrice(product.price.toString());
-    setStockQuantity(product.stockQuantity.toString());
-    setImageUrl(product.imageUrl);
-    setDescription(product.description);
-    setOriginalPrice(product.originalPrice ? product.originalPrice.toString() : '');
-    setTag(product.tag || '');
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingProduct(null);
-  };
-
-  const handleDeleteProduct = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
-
-    try {
-      await deleteProduct(id);
-      toast.success('Product deleted successfully.');
-      fetchProducts(page); // Reload list
-    } catch (err: any) {
-      const errMsg = err.response?.data?.message || 'Failed to delete product.';
-      toast.error(errMsg);
-    }
+    setForm({
+      name: product.name,
+      categoryId: product.categoryId,
+      price: String(product.price),
+      originalPrice: product.originalPrice ? String(product.originalPrice) : '',
+      stockQuantity: String(product.stockQuantity),
+      imageUrl: product.imageUrl,
+      description: product.description,
+      tag: product.tag || ''
+    });
+    setShowModal(true);
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Field validations
-    if (!name.trim() || !price || !stockQuantity || !imageUrl.trim() || !description.trim() || !categoryId) {
-      toast.error('Please fill in all required fields.');
-      return;
-    }
-
-    const productPayload = {
-      categoryId,
-      name,
-      price: parseFloat(price),
-      stockQuantity: parseInt(stockQuantity),
-      imageUrl,
-      description,
-      originalPrice: originalPrice ? parseFloat(originalPrice) : undefined,
-      tag: tag || undefined
-    };
-
+    setSaving(true);
     try {
+      const payload: any = {
+        name: form.name.trim(),
+        categoryId: Number(form.categoryId),
+        price: parseFloat(form.price),
+        stockQuantity: parseInt(form.stockQuantity),
+        imageUrl: form.imageUrl.trim(),
+        description: form.description.trim(),
+        tag: form.tag.trim() || undefined,
+        originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : undefined
+      };
+
       if (editingProduct) {
-        // Edit Product
-        await updateProduct(editingProduct.id, productPayload);
-        toast.success('Product updated successfully.');
+        await updateProduct(editingProduct.id, payload);
+        toast.success('Cập nhật sản phẩm thành công!');
       } else {
-        // Add Product
-        await createProduct(productPayload);
-        toast.success('Product created successfully.');
+        await createProduct(payload);
+        toast.success('Thêm sản phẩm thành công!');
       }
-      handleCloseModal();
-      fetchProducts(page);
+      setShowModal(false);
+      fetchProducts(currentPage);
     } catch (err: any) {
-      const errMsg = err.response?.data?.message || 'Failed to save product.';
-      toast.error(errMsg);
+      toast.error(err?.response?.data?.message || 'Có lỗi xảy ra, thử lại');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin_user');
-    toast.success('Logged out successfully.');
-    navigate('/admin/login');
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteProduct(id);
+      toast.success('Xóa sản phẩm thành công!');
+      setShowDeleteConfirm(null);
+      fetchProducts(currentPage);
+    } catch {
+      toast.error('Xóa thất bại, thử lại');
+    }
   };
 
-  const getCategoryName = (catId: number) => {
-    const category = categories.find(c => c.id === catId);
-    return category ? category.name : 'Unknown';
+  const getCategoryName = (catId: number) =>
+    categories.find(c => c.id === catId)?.name || '—';
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '10px 14px',
+    border: '1.5px solid #e5e7eb', borderRadius: '10px',
+    fontSize: '0.88rem', color: '#1a1a1a', outline: 'none',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    fontFamily: 'var(--font-sans)', background: '#fff'
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontSize: '0.75rem', fontWeight: 700,
+    textTransform: 'uppercase', letterSpacing: '0.06em',
+    color: '#555', marginBottom: '6px'
   };
 
   return (
-    <div className="admin-dashboard" style={{ backgroundColor: 'var(--color-light-bg)', minHeight: '100vh' }}>
-      {/* Admin Navigation Bar */}
-      <nav style={{
-        backgroundColor: '#ffffff',
-        borderBottom: '1px solid var(--color-border)',
-        padding: '15px 40px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '30px' }}>
-          <h1 style={{ 
-            fontFamily: 'var(--font-serif)', 
-            fontSize: '1.6rem', 
-            margin: 0, 
-            letterSpacing: '0.05em',
-            fontWeight: 600
-          }}>
-            Learts <span style={{ color: 'var(--color-primary)', fontSize: '1rem', verticalAlign: 'middle' }}>ADMIN</span>
-          </h1>
-          <div style={{ display: 'flex', gap: '20px', marginLeft: '20px' }}>
-            <Link to="/admin/products" style={{ 
-              fontWeight: 600, 
-              color: 'var(--color-dark)',
-              borderBottom: '2px solid var(--color-dark)',
-              paddingBottom: '5px',
-              fontSize: '0.95rem'
-            }}>Products</Link>
-            <Link to="/admin/orders" style={{ 
-              fontWeight: 500, 
-              color: 'var(--color-muted)',
-              paddingBottom: '5px',
-              fontSize: '0.95rem'
-            }}>Orders</Link>
-          </div>
-        </div>
+    <div style={{ fontFamily: 'var(--font-sans)' }}>
+      <style>{`
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .product-row { transition: background 0.15s; }
+        .product-row:hover { background: rgba(184,144,120,0.04) !important; }
+        .action-btn {
+          width: 34px; height: 34px; border-radius: 8px;
+          border: 1px solid #e5e7eb; background: #fff;
+          display: inline-flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: all 0.15s;
+          color: #666;
+        }
+        .action-btn:hover { transform: scale(1.05); }
+        .action-btn.edit:hover { background: #eff6ff; border-color: #3b82f6; color: #3b82f6; }
+        .action-btn.delete:hover { background: #fef2f2; border-color: #ef4444; color: #ef4444; }
+        .form-input:focus { border-color: var(--color-primary) !important; box-shadow: 0 0 0 3px rgba(184,144,120,0.12) !important; }
+        .pagination-btn {
+          width: 34px; height: 34px; border-radius: 8px; border: 1px solid #e5e7eb;
+          background: #fff; cursor: pointer; display: inline-flex;
+          align-items: center; justify-content: center; font-size: 0.85rem;
+          font-weight: 600; transition: all 0.15s; color: #555;
+        }
+        .pagination-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+        .pagination-btn.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+        .pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .filter-btn {
+          padding: 9px 16px; border-radius: 8px; border: 1.5px solid #e5e7eb;
+          background: #fff; cursor: pointer; font-size: 0.82rem; font-weight: 600;
+          color: #555; transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+          font-family: var(--font-sans);
+        }
+        .filter-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+        .filter-btn.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+      `}</style>
+
+      {/* Page Header */}
+      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <button 
-            onClick={handleLogout}
-            style={{
-              padding: '8px 18px',
-              backgroundColor: 'transparent',
-              border: '1px solid var(--color-border)',
-              color: 'var(--color-dark)',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-              fontWeight: 500,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              transition: 'var(--transition-fast)'
-            }}
-          >
-            Log Out
-          </button>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#1a1a1a', margin: 0 }}>Quản Lý Sản Phẩm</h1>
+          <p style={{ color: '#888', marginTop: '4px', fontSize: '0.88rem' }}>
+            ${totalItems} sản phẩm trong danh mục
+          </p>
         </div>
-      </nav>
-
-      {/* Main Content Area */}
-      <div className="container" style={{ padding: '40px 24px' }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '30px'
+        <button onClick={openAddModal} style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
+          color: '#fff', border: 'none', padding: '11px 20px',
+          borderRadius: '10px', fontWeight: 600, fontSize: '0.88rem',
+          cursor: 'pointer', boxShadow: '0 4px 14px rgba(184,144,120,0.4)',
+          transition: 'all 0.2s', fontFamily: 'var(--font-sans)'
         }}>
-          <div>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', color: 'var(--color-dark)' }}>Products Management</h2>
-            <p style={{ color: 'var(--color-muted)', fontSize: '0.9rem', marginTop: '5px' }}>
-              Manage products catalog, updates stock values, and pricing. (Total: {totalItems})
-            </p>
-          </div>
-          <button 
-            onClick={handleOpenAddModal}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: 'var(--color-dark)',
-              color: '#ffffff',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              transition: 'var(--transition-fast)'
-            }}
-          >
-            Add New Product
-          </button>
+          <Plus size={18} /> Thêm Sản Phẩm
+        </button>
+      </div>
+
+      {/* Toolbar */}
+      <div style={{ background: '#fff', borderRadius: '14px', padding: '16px 20px', marginBottom: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+        {/* Search */}
+        <div style={{ position: 'relative', flex: '1', minWidth: '200px', maxWidth: '320px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
+          <input
+            type="text"
+            placeholder="Tìm kiếm sản phẩm..."
+            value={searchQuery}
+            onChange={handleSearchChange}
+            style={{ ...inputStyle, paddingLeft: '38px', width: '100%' }}
+            className="form-input"
+          />
         </div>
 
-        {/* Products Table */}
+        {/* Category Filter */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <Filter size={14} style={{ color: '#aaa' }} />
+          <button className={`filter-btn ${filterCategory === '' ? 'active' : ''}`} onClick={() => handleFilterChange('')}>Tất cả</button>
+          {categories.map(cat => (
+            <button key={cat.id} className={`filter-btn ${filterCategory === cat.id ? 'active' : ''}`} onClick={() => handleFilterChange(cat.id)}>
+              {cat.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Sort */}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          <select
+            value={sortBy}
+            onChange={e => handleSortChange(e.target.value)}
+            style={{ ...inputStyle, width: 'auto', paddingRight: '32px', cursor: 'pointer' }}
+            className="form-input"
+          >
+            <option value="">Sắp xếp mặc định</option>
+            <option value="price_asc">Giá: Thấp → Cao</option>
+            <option value="price_desc">Giá: Cao → Thấp</option>
+            <option value="name_asc">Tên A → Z</option>
+            <option value="name_desc">Tên Z → A</option>
+          </select>
+          <button onClick={() => fetchProducts(currentPage)} style={{ ...inputStyle, width: '38px', padding: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} className="form-input">
+            <RefreshCw size={16} color="#888" />
+          </button>
+        </div>
+      </div>
+
+      {/* Products Table */}
+      <div style={{ background: '#fff', borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-            <p style={{ color: 'var(--color-muted)' }}>Loading products database...</p>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '80px', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ width: '40px', height: '40px', border: '3px solid #f3f4f6', borderTop: '3px solid var(--color-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <p style={{ color: '#aaa', fontSize: '0.88rem' }}>Đang tải sản phẩm...</p>
           </div>
         ) : products.length === 0 ? (
-          <div style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid var(--color-border)',
-            padding: '60px',
-            textAlign: 'center'
-          }}>
-            <p style={{ color: 'var(--color-muted)', marginBottom: '15px' }}>No products found in the catalog.</p>
-            <button onClick={handleOpenAddModal} style={{ color: 'var(--color-primary)', fontWeight: 600 }}>Create First Product</button>
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: '#aaa' }}>
+            <Package size={48} style={{ marginBottom: '16px', opacity: 0.3 }} />
+            <h3 style={{ color: '#ccc', marginBottom: '8px' }}>Không tìm thấy sản phẩm</h3>
+            <p style={{ fontSize: '0.88rem' }}>Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
           </div>
         ) : (
-          <div style={{ backgroundColor: '#ffffff', border: '1px solid var(--color-border)', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-cream)' }}>
-                  <th style={{ padding: '15px 20px', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--color-dark)' }}>ID</th>
-                  <th style={{ padding: '15px 20px', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--color-dark)' }}>Image</th>
-                  <th style={{ padding: '15px 20px', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--color-dark)' }}>Name</th>
-                  <th style={{ padding: '15px 20px', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--color-dark)' }}>Category</th>
-                  <th style={{ padding: '15px 20px', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--color-dark)' }}>Price</th>
-                  <th style={{ padding: '15px 20px', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--color-dark)' }}>Stock</th>
-                  <th style={{ padding: '15px 20px', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--color-dark)' }}>Tag</th>
-                  <th style={{ padding: '15px 20px', fontWeight: 600, fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--color-dark)', textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id} style={{ borderBottom: '1px solid var(--color-border)', transition: 'var(--transition-fast)' }} className="table-row-hover">
-                    <td style={{ padding: '15px 20px', fontSize: '0.9rem', color: 'var(--color-muted)' }}>#{product.id}</td>
-                    <td style={{ padding: '10px 20px' }}>
-                      <img 
-                        src={product.imageUrl} 
-                        alt={product.name} 
-                        style={{ width: '50px', height: '50px', objectFit: 'cover', border: '1px solid var(--color-border)' }} 
-                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/50x50?text=No+Image'; }}
-                      />
-                    </td>
-                    <td style={{ padding: '15px 20px', fontWeight: 500, fontSize: '0.95rem', color: 'var(--color-dark)' }}>{product.name}</td>
-                    <td style={{ padding: '15px 20px', fontSize: '0.9rem' }}>{getCategoryName(product.categoryId)}</td>
-                    <td style={{ padding: '15px 20px', fontWeight: 600, fontSize: '0.95rem' }}>
-                      ${product.price.toFixed(2)}
-                      {product.originalPrice && (
-                        <span style={{ fontSize: '0.8rem', textDecoration: 'line-through', color: 'var(--color-muted)', marginLeft: '6px' }}>
-                          ${product.originalPrice.toFixed(2)}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '15px 20px', fontSize: '0.9rem' }}>
-                      <span style={{
-                        padding: '3px 8px',
-                        backgroundColor: product.stockQuantity > 10 ? 'rgba(95, 141, 78, 0.1)' : 'rgba(192, 57, 43, 0.1)',
-                        color: product.stockQuantity > 10 ? 'var(--color-success)' : 'var(--color-error)',
-                        fontWeight: 600,
-                        fontSize: '0.8rem'
-                      }}>
-                        {product.stockQuantity} in stock
-                      </span>
-                    </td>
-                    <td style={{ padding: '15px 20px', fontSize: '0.85rem', color: 'var(--color-primary)', fontWeight: 600 }}>
-                      {product.tag ? product.tag.toUpperCase() : '-'}
-                    </td>
-                    <td style={{ padding: '15px 20px', textAlign: 'right' }}>
-                      <button 
-                        onClick={() => handleOpenEditModal(product)}
-                        style={{ 
-                          marginRight: '12px', 
-                          color: 'var(--color-primary)', 
-                          background: 'none', 
-                          border: 'none', 
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          fontSize: '0.85rem'
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteProduct(product.id)}
-                        style={{ 
-                          color: 'var(--color-error)', 
-                          background: 'none', 
-                          border: 'none', 
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          fontSize: '0.85rem'
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </td>
+          <>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
+                <thead>
+                  <tr style={{ background: '#fafafa' }}>
+                    {['#', 'Sản Phẩm', 'Danh Mục', 'Giá', 'Tồn Kho', 'Tag', 'Thao Tác'].map((h, i) => (
+                      <th key={i} style={{
+                        padding: '13px 16px', fontSize: '0.72rem', fontWeight: 700,
+                        textTransform: 'uppercase', letterSpacing: '0.07em', color: '#888',
+                        borderBottom: '1px solid #f0f0f0', textAlign: i >= 5 ? 'center' : 'left', whiteSpace: 'nowrap'
+                      }}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {products.map((product) => (
+                    <tr key={product.id} className="product-row" style={{ borderBottom: '1px solid #f5f5f5' }}>
+                      <td style={{ padding: '14px 16px', color: '#aaa', fontSize: '0.82rem', fontFamily: 'monospace' }}>#${product.id}</td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {product.imageUrl ? (
+                            <img src={product.imageUrl} alt={product.name} style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', border: '1px solid #f0f0f0', flexShrink: 0 }} />
+                          ) : (
+                            <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <ImageIcon size={20} color="#ccc" />
+                            </div>
+                          )}
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1a1a1a', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>{product.name}</div>
+                            <div style={{ fontSize: '0.76rem', color: '#aaa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>{product.description}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span style={{ background: '#f5f5f5', color: '#555', padding: '4px 10px', borderRadius: '6px', fontSize: '0.78rem', fontWeight: 600 }}>
+                          {getCategoryName(product.categoryId)}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <div style={{ fontWeight: 700, color: '#1a1a1a', fontSize: '0.9rem' }}>$${product.price.toFixed(2)}</div>
+                        {product.originalPrice && (
+                          <div style={{ fontSize: '0.76rem', color: '#aaa', textDecoration: 'line-through' }}>$${product.originalPrice.toFixed(2)}</div>
+                        )}
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span style={{
+                          padding: '4px 10px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
+                          background: product.stockQuantity === 0 ? '#fef2f2' : product.stockQuantity <= 5 ? '#fff7ed' : '#f0fdf4',
+                          color: product.stockQuantity === 0 ? '#ef4444' : product.stockQuantity <= 5 ? '#f59e0b' : '#10b981',
+                          border: `1px solid ${product.stockQuantity === 0 ? 'rgba(239,68,68,0.2)' : product.stockQuantity <= 5 ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)'}`
+                        }}>
+                          {product.stockQuantity === 0 ? 'Hết hàng' : `${product.stockQuantity} cái`}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        {product.tag ? (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            background: 'rgba(184,144,120,0.12)', color: 'var(--color-primary)',
+                            padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600,
+                            border: '1px solid rgba(184,144,120,0.3)'
+                          }}>
+                            <Tag size={10} />{product.tag}
+                          </span>
+                        ) : <span style={{ color: '#ddd', fontSize: '0.8rem' }}>—</span>}
+                      </td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          <button className="action-btn edit" onClick={() => openEditModal(product)} title="Chỉnh sửa">
+                            <Edit2 size={15} />
+                          </button>
+                          <button className="action-btn delete" onClick={() => setShowDeleteConfirm(product.id)} title="Xóa">
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-        {/* Pagination Section */}
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '30px' }}>
-            <button
-              onClick={() => setPage(p => Math.max(p - 1, 1))}
-              disabled={page === 1}
-              style={{
-                padding: '8px 15px',
-                border: '1px solid var(--color-border)',
-                backgroundColor: page === 1 ? '#eee' : '#fff',
-                cursor: page === 1 ? 'not-allowed' : 'pointer'
-              }}
-            >
-              Prev
-            </button>
-            <span style={{ alignSelf: 'center', fontSize: '0.9rem', color: 'var(--color-muted)' }}>
-              Page {page} of {totalPages}
-            </span>
-            <button
-              onClick={() => setPage(p => Math.min(p + 1, totalPages))}
-              disabled={page === totalPages}
-              style={{
-                padding: '8px 15px',
-                border: '1px solid var(--color-border)',
-                backgroundColor: page === totalPages ? '#eee' : '#fff',
-                cursor: page === totalPages ? 'not-allowed' : 'pointer'
-              }}
-            >
-              Next
-            </button>
-          </div>
+            {/* Pagination */}
+            <div style={{ padding: '16px 20px', borderTop: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <span style={{ fontSize: '0.82rem', color: '#888' }}>
+                Hiển thị ${(currentPage - 1) * PAGE_SIZE + 1}–${Math.min(currentPage * PAGE_SIZE, totalItems)} trong tổng số ${totalItems} sản phẩm
+              </span>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <button className="pagination-btn" disabled={currentPage === 1} onClick={() => { fetchProducts(currentPage - 1); }}>
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <button key={page} className={`pagination-btn ${page === currentPage ? 'active' : ''}`} onClick={() => fetchProducts(page)}>
+                      {page}
+                    </button>
+                  );
+                })}
+                {totalPages > 5 && <span style={{ color: '#aaa', fontSize: '0.8rem' }}>...</span>}
+                <button className="pagination-btn" disabled={currentPage === totalPages} onClick={() => { fetchProducts(currentPage + 1); }}>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
-      {/* Add / Edit Product Modal */}
-      {isModalOpen && (
+      {/* Add/Edit Modal */}
+      {showModal && (
         <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(31, 31, 31, 0.4)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 100,
-          padding: '20px'
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px',
+          animation: 'fadeIn 0.2s ease'
         }}>
           <div style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid var(--color-border)',
-            width: '100%',
-            maxWidth: '650px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '40px',
-            boxShadow: 'var(--shadow-lg)'
+            background: '#fff', borderRadius: '20px', width: '100%', maxWidth: '680px',
+            maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,0.2)',
+            animation: 'modalIn 0.25s ease'
           }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '30px',
-              borderBottom: '1px solid var(--color-border)',
-              paddingBottom: '15px'
-            }}>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.6rem', color: 'var(--color-dark)' }}>
-                {editingProduct ? `Edit Product #${editingProduct.id}` : 'Add New Product'}
-              </h3>
-              <button 
-                onClick={handleCloseModal}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '1.5rem',
-                  cursor: 'pointer',
-                  color: 'var(--color-muted)'
-                }}
-              >
-                &times;
+            {/* Modal Header */}
+            <div style={{ padding: '24px 28px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#1a1a1a' }}>
+                  {editingProduct ? '✏️ Chỉnh Sửa Sản Phẩm' : '➕ Thêm Sản Phẩm Mới'}
+                </h2>
+                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#aaa' }}>
+                  {editingProduct ? `Đang chỉnh sửa: ${editingProduct.name}` : 'Điền đầy đủ thông tin để tạo sản phẩm mới'}
+                </p>
+              </div>
+              <button onClick={() => setShowModal(false)} style={{ width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #e5e7eb', background: '#f9f9f9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', transition: 'all 0.15s' }}>
+                <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleFormSubmit}>
+            {/* Modal Body */}
+            <form onSubmit={handleFormSubmit} style={{ padding: '28px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                <div>
-                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Product Name *</label>
-                  <input 
-                    type="text" 
-                    value={name} 
-                    onChange={e => setName(e.target.value)} 
-                    style={{ width: '100%', padding: '10px', border: '1px solid var(--color-border)' }}
-                    required 
-                  />
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Tên Sản Phẩm *</label>
+                  <input className="form-input" type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} style={inputStyle} placeholder="Nhập tên sản phẩm..." required />
                 </div>
                 <div>
-                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Category *</label>
-                  <select 
-                    value={categoryId} 
-                    onChange={e => setCategoryId(parseInt(e.target.value))} 
-                    style={{ width: '100%', padding: '10px', border: '1px solid var(--color-border)', backgroundColor: '#fff' }}
-                    required
-                  >
-                    {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
+                  <label style={labelStyle}>Danh Mục *</label>
+                  <select className="form-input" value={form.categoryId} onChange={e => setForm(f => ({ ...f, categoryId: parseInt(e.target.value) }))} style={inputStyle} required>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
                 <div>
-                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Price ($) *</label>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    value={price} 
-                    onChange={e => setPrice(e.target.value)} 
-                    style={{ width: '100%', padding: '10px', border: '1px solid var(--color-border)' }}
-                    required 
-                  />
+                  <label style={labelStyle}>Tag (hot, sale, new...)</label>
+                  <input className="form-input" type="text" value={form.tag} onChange={e => setForm(f => ({ ...f, tag: e.target.value }))} style={inputStyle} placeholder="Ví dụ: hot, sale, new" />
                 </div>
                 <div>
-                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Stock Quantity *</label>
-                  <input 
-                    type="number" 
-                    value={stockQuantity} 
-                    onChange={e => setStockQuantity(e.target.value)} 
-                    style={{ width: '100%', padding: '10px', border: '1px solid var(--color-border)' }}
-                    required 
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                <div>
-                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Original Price ($)</label>
-                  <input 
-                    type="number" 
-                    step="0.01" 
-                    value={originalPrice} 
-                    onChange={e => setOriginalPrice(e.target.value)} 
-                    style={{ width: '100%', padding: '10px', border: '1px solid var(--color-border)' }}
-                    placeholder="Leave blank if no sale"
-                  />
+                  <label style={labelStyle}>Giá Bán ($) *</label>
+                  <div style={{ position: 'relative' }}>
+                    <DollarSign size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
+                    <input className="form-input" type="number" step="0.01" min="0" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} style={{ ...inputStyle, paddingLeft: '32px' }} placeholder="0.00" required />
+                  </div>
                 </div>
                 <div>
-                  <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Tag (e.g. sale, hot)</label>
-                  <input 
-                    type="text" 
-                    value={tag} 
-                    onChange={e => setTag(e.target.value)} 
-                    style={{ width: '100%', padding: '10px', border: '1px solid var(--color-border)' }}
-                    placeholder="e.g. hot, sale"
-                  />
+                  <label style={labelStyle}>Giá Gốc ($) <span style={{ color: '#aaa', fontWeight: 400 }}>(nếu có khuyến mãi)</span></label>
+                  <div style={{ position: 'relative' }}>
+                    <DollarSign size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
+                    <input className="form-input" type="number" step="0.01" min="0" value={form.originalPrice} onChange={e => setForm(f => ({ ...f, originalPrice: e.target.value }))} style={{ ...inputStyle, paddingLeft: '32px' }} placeholder="0.00" />
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Số Lượng Tồn Kho *</label>
+                  <div style={{ position: 'relative' }}>
+                    <Box size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
+                    <input className="form-input" type="number" min="0" value={form.stockQuantity} onChange={e => setForm(f => ({ ...f, stockQuantity: e.target.value }))} style={{ ...inputStyle, paddingLeft: '32px' }} placeholder="0" required />
+                  </div>
                 </div>
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Image URL *</label>
-                <input 
-                  type="text" 
-                  value={imageUrl} 
-                  onChange={e => setImageUrl(e.target.value)} 
-                  style={{ width: '100%', padding: '10px', border: '1px solid var(--color-border)' }}
-                  placeholder="/assets/images/product/s328/product-X.webp"
-                  required 
-                />
+                <label style={labelStyle}>URL Hình Ảnh *</label>
+                <div style={{ position: 'relative' }}>
+                  <ImageIcon size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#aaa' }} />
+                  <input className="form-input" type="text" value={form.imageUrl} onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))} style={{ ...inputStyle, paddingLeft: '32px' }} placeholder="/assets/images/product/..." required />
+                </div>
+                {form.imageUrl && (
+                  <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <img src={form.imageUrl} alt="preview" style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover', border: '1px solid #e5e7eb' }} onError={e => (e.currentTarget.style.display = 'none')} />
+                    <span style={{ fontSize: '0.78rem', color: '#aaa' }}>Xem trước hình ảnh</span>
+                  </div>
+                )}
               </div>
 
-              <div style={{ marginBottom: '30px' }}>
-                <label className="form-label" style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '6px' }}>Description *</label>
-                <textarea 
-                  value={description} 
-                  onChange={e => setDescription(e.target.value)} 
-                  rows={4}
-                  style={{ width: '100%', padding: '10px', border: '1px solid var(--color-border)', fontFamily: 'var(--font-sans)', resize: 'vertical' }}
-                  required 
-                />
+              <div style={{ marginBottom: '28px' }}>
+                <label style={labelStyle}>Mô Tả Sản Phẩm *</label>
+                <textarea className="form-input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={4} style={{ ...inputStyle, resize: 'vertical', lineHeight: '1.6' }} placeholder="Nhập mô tả chi tiết về sản phẩm..." required />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
-                <button 
-                  type="button" 
-                  onClick={handleCloseModal}
-                  style={{
-                    padding: '10px 20px',
-                    border: '1px solid var(--color-border)',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
-                  }}
-                >
-                  Cancel
+              {/* Modal Footer */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '4px' }}>
+                <button type="button" onClick={() => setShowModal(false)} style={{
+                  padding: '11px 22px', borderRadius: '10px', border: '1.5px solid #e5e7eb',
+                  background: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '0.88rem',
+                  color: '#555', fontFamily: 'var(--font-sans)', transition: 'all 0.15s'
+                }}>
+                  Hủy
                 </button>
-                <button 
-                  type="submit" 
-                  style={{
-                    padding: '10px 25px',
-                    border: 'none',
-                    backgroundColor: 'var(--color-dark)',
-                    color: '#fff',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
-                  }}
-                >
-                  {editingProduct ? 'Save Changes' : 'Create Product'}
+                <button type="submit" disabled={saving} style={{
+                  padding: '11px 26px', borderRadius: '10px', border: 'none',
+                  background: saving ? '#ccc' : 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)',
+                  color: '#fff', cursor: saving ? 'not-allowed' : 'pointer',
+                  fontWeight: 600, fontSize: '0.88rem', fontFamily: 'var(--font-sans)',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  boxShadow: saving ? 'none' : '0 4px 14px rgba(184,144,120,0.4)'
+                }}>
+                  {saving ? <><RefreshCw size={16} style={{ animation: 'spin 0.8s linear infinite' }} /> Đang lưu...</> : <><Check size={16} /> {editingProduct ? 'Lưu Thay Đổi' : 'Tạo Sản Phẩm'}</>}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Dialog */}
+      {showDeleteConfirm !== null && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001,
+          animation: 'fadeIn 0.2s ease'
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '18px', width: '100%', maxWidth: '400px',
+            padding: '32px', textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.2)',
+            animation: 'modalIn 0.25s ease'
+          }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <AlertCircle size={28} color="#ef4444" />
+            </div>
+            <h3 style={{ margin: '0 0 10px', fontSize: '1.15rem', fontWeight: 700, color: '#1a1a1a' }}>Xác nhận xóa?</h3>
+            <p style={{ color: '#888', fontSize: '0.88rem', marginBottom: '24px' }}>
+              Sản phẩm này sẽ bị xóa vĩnh viễn và không thể khôi phục.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button onClick={() => setShowDeleteConfirm(null)} style={{
+                flex: 1, padding: '11px', borderRadius: '10px', border: '1.5px solid #e5e7eb',
+                background: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '0.88rem',
+                color: '#555', fontFamily: 'var(--font-sans)'
+              }}>Hủy</button>
+              <button onClick={() => handleDelete(showDeleteConfirm!)} style={{
+                flex: 1, padding: '11px', borderRadius: '10px', border: 'none',
+                background: '#ef4444', color: '#fff', cursor: 'pointer',
+                fontWeight: 600, fontSize: '0.88rem', fontFamily: 'var(--font-sans)',
+                boxShadow: '0 4px 14px rgba(239,68,68,0.3)'
+              }}>Xóa Ngay</button>
+            </div>
           </div>
         </div>
       )}

@@ -31,3 +31,6 @@ backend/.env
 backend/node_modules
 .vercel
 
+
+.vercel
+.env*

@@ -273,6 +273,9 @@ export const Header: React.FC = () => {
                     <li><Link to="/page-404"><span className="menu-text">Page 404</span></Link></li>
                   </ul>
                 </li>
+                <li>
+                  <Link to="/admin"><span className="menu-text" style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Admin</span></Link>
+                </li>
               </ul>
             </nav>
           </div>
@@ -334,6 +337,7 @@ export const Header: React.FC = () => {
               <li style={{ padding: '8px 0' }}><Link to="/" onClick={() => setIsMobileMenuOpen(false)}>Home</Link></li>
               <li style={{ padding: '8px 0' }}><Link to="/shop" onClick={() => setIsMobileMenuOpen(false)}>Shop</Link></li>
               <li style={{ padding: '8px 0' }}><Link to="/cart" onClick={() => setIsMobileMenuOpen(false)}>Cart</Link></li>
+              <li style={{ padding: '8px 0', borderTop: '1px dashed #eee', marginTop: '5px' }}><Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>Admin</Link></li>
             </ul>
           </div>
         )}
