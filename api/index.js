@@ -181,6 +181,40 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // ============================================================
+// 1.1. USER MANAGEMENT ROUTES (Admin Only)
+// ============================================================
+
+// GET /api/users - Lấy danh sách admin
+app.get('/api/users', authenticateAdmin, async (req, res) => {
+  try {
+    const users = await User.find({}, '-password').sort({ createdAt: -1 });
+    res.status(200).json({ success: true, message: 'Users retrieved successfully.', data: users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error fetching users.', error: err.message });
+  }
+});
+
+// DELETE /api/users/:id - Xóa tài khoản admin
+app.delete('/api/users/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Không cho phép tự xóa chính mình
+    if (req.user.id === id) {
+      return res.status(400).json({ success: false, message: 'You cannot delete your own account.' });
+    }
+
+    const deletedUser = await User.findByIdAndDelete(id);
+    if (!deletedUser) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+    res.status(200).json({ success: true, message: 'User deleted successfully.', data: { id: deletedUser._id, username: deletedUser.username } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error deleting user.', error: err.message });
+  }
+});
+
+// ============================================================
 // 2. CATEGORY & PRODUCT ROUTES
 // ============================================================
 

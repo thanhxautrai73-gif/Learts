@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useCartStore } from '../store/useCartStore';
 import { useWishlistStore } from '../store/useWishlistStore';
 import { useQuery } from '@tanstack/react-query';
 import { getProducts } from '../services/api';
 
 export const Header: React.FC = () => {
+  const location = useLocation();
+  if (location.pathname.startsWith('/admin')) {
+    return null;
+  }
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const cartItemsCount = useCartStore((state) => state.getTotalItemsCount());
   const wishlistCount = useWishlistStore((state) => state.items.length);

@@ -40,6 +40,9 @@ import { AdminLogin } from './pages/admin/AdminLogin';
 import { AdminRegister } from './pages/admin/AdminRegister';
 import { AdminProducts } from './pages/admin/AdminProducts';
 import { AdminOrders } from './pages/admin/AdminOrders';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminUsers } from './pages/admin/AdminUsers';
+import { AdminLayout } from './components/AdminLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Create React Query Client
@@ -101,9 +104,13 @@ export const App: React.FC = () => {
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/register" element={<AdminRegister />} />
               <Route element={<ProtectedRoute />}>
-                <Route path="/admin" element={<AdminProducts />} />
-                <Route path="/admin/products" element={<AdminProducts />} />
-                <Route path="/admin/orders" element={<AdminOrders />} />
+                <Route element={<AdminLayout />}>
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="/admin/products" element={<AdminProducts />} />
+                  <Route path="/admin/orders" element={<AdminOrders />} />
+                  <Route path="/admin/users" element={<AdminUsers />} />
+                </Route>
               </Route>
               
               {/* Fallback to 404 Page if route not found */}

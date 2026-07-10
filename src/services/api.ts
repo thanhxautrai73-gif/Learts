@@ -178,4 +178,22 @@ export const updateOrderStatus = async (id: number, status: string): Promise<Ord
   return response.data.data;
 };
 
+// Admin User Management Services (Protected)
+export interface AdminUserListItem {
+  _id: string;
+  username: string;
+  email: string;
+  createdAt: string;
+}
+
+export const getAdminUsers = async (): Promise<AdminUserListItem[]> => {
+  const response = await api.get<{ success: boolean; message: string; data: AdminUserListItem[] }>('/users');
+  return response.data.data;
+};
+
+export const deleteAdminUser = async (id: string): Promise<{ id: string; username: string }> => {
+  const response = await api.delete<{ success: boolean; message: string; data: { id: string; username: string } }>(`/users/${id}`);
+  return response.data.data;
+};
+
 export default api;

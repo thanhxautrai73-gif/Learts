@@ -1,6 +1,11 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 
 export const Footer: React.FC = () => {
+  const location = useLocation();
+  if (location.pathname.startsWith('/admin')) {
+    return null;
+  }
   return (
     <div className="footer1-section section section-padding bg-light">
       <div className="container">
