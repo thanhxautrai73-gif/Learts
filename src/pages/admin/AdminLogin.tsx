@@ -24,7 +24,7 @@ export const AdminLogin: React.FC = () => {
       toast.success('Welcome back, Admin!');
       
       // Dispatch a storage event or simple navigate
-      navigate('/admin/products');
+      navigate('/admin/dashboard');
     } catch (err: any) {
       const errMsg = err.response?.data?.message || 'Login failed. Please check your credentials.';
       toast.error(errMsg);
