@@ -1,0 +1,173 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Pots & Vases",
+      "description": "Stunning pots and vases for your botanical needs"
+    },
+    {
+      "id": 2,
+      "name": "Kitchenware",
+      "description": "Kitchen and dining sets, mugs, and blenders"
+    },
+    {
+      "id": 3,
+      "name": "Decor & Toys",
+      "description": "Beautiful sculptures, toys, and holiday decorations"
+    },
+    {
+      "id": 4,
+      "name": "Tools",
+      "description": "Handy craft tools, scissors, and tape dispensers"
+    },
+    {
+      "id": 5,
+      "name": "Accessories",
+      "description": "Home cleaning accessories and brushes"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "categoryId": 1,
+      "name": "3D Attractive Pot",
+      "price": 90,
+      "stockQuantity": 50,
+      "imageUrl": "/assets/images/product/s328/product-1.webp",
+      "description": "A beautiful 3D attractive pot designed for modern homes."
+    },
+    {
+      "id": 2,
+      "categoryId": 1,
+      "name": "Abstract Folded Pots",
+      "price": 50,
+      "stockQuantity": 40,
+      "imageUrl": "/assets/images/product/s328/product-2.webp",
+      "description": "Stunning abstract folded pots to showcase your plants.",
+      "tag": "hot"
+    },
+    {
+      "id": 3,
+      "categoryId": 4,
+      "name": "Adhesive Tape Dispenser",
+      "price": 15,
+      "stockQuantity": 100,
+      "imageUrl": "/assets/images/product/s328/product-3.webp",
+      "description": "Minimalist wooden adhesive tape dispenser."
+    },
+    {
+      "id": 4,
+      "categoryId": 3,
+      "name": "Aluminum Equestrian",
+      "price": 80,
+      "stockQuantity": 15,
+      "imageUrl": "/assets/images/product/s328/product-4.webp",
+      "description": "Polished aluminum equestrian statue.",
+      "originalPrice": 100
+    },
+    {
+      "id": 5,
+      "categoryId": 4,
+      "name": "Antique Sewing Scissors",
+      "price": 12,
+      "stockQuantity": 50,
+      "imageUrl": "/assets/images/product/s328/product-5.webp",
+      "description": "Beautiful antique style sewing scissors.",
+      "originalPrice": 15
+    },
+    {
+      "id": 6,
+      "categoryId": 2,
+      "name": "Boho Beard Mug",
+      "price": 39,
+      "stockQuantity": 45,
+      "imageUrl": "/assets/images/product/s328/product-6.webp",
+      "description": "Bohemian styled beard mug for your morning coffee.",
+      "originalPrice": 45
+    },
+    {
+      "id": 7,
+      "categoryId": 2,
+      "name": "Bouncer Measuring Cup",
+      "price": 150,
+      "stockQuantity": 30,
+      "imageUrl": "/assets/images/product/s328/product-7.webp",
+      "description": "Heavy duty bouncer measuring cup for cooking precision."
+    },
+    {
+      "id": 8,
+      "categoryId": 5,
+      "name": "Brush & Dustpan Set",
+      "price": 9,
+      "stockQuantity": 150,
+      "imageUrl": "/assets/images/product/s328/product-8.webp",
+      "description": "Handy brush and dustpan set for desktop cleanup."
+    },
+    {
+      "id": 9,
+      "categoryId": 3,
+      "name": "Cape Cottage Playhouse",
+      "price": 35,
+      "stockQuantity": 20,
+      "imageUrl": "/assets/images/product/s328/product-9.webp",
+      "description": "Fun Cape Cottage playhouse for children's playroom."
+    },
+    {
+      "id": 10,
+      "categoryId": 5,
+      "name": "Cleaning Dustpan & Brush",
+      "price": 38,
+      "stockQuantity": 80,
+      "imageUrl": "/assets/images/product/s328/product-10.webp",
+      "description": "Sturdy cleaning dustpan and brush set."
+    },
+    {
+      "id": 11,
+      "categoryId": 1,
+      "name": "Clear Silicate Teapot",
+      "price": 121,
+      "stockQuantity": 35,
+      "imageUrl": "/assets/images/product/s328/product-11.webp",
+      "description": "High quality clear silicate glass teapot.",
+      "originalPrice": 140
+    },
+    {
+      "id": 12,
+      "categoryId": 2,
+      "name": "Country Feast Set",
+      "price": 39,
+      "stockQuantity": 25,
+      "imageUrl": "/assets/images/product/s328/product-12.webp",
+      "description": "Perfect feast set for country style dinners.",
+      "originalPrice": 45,
+      "tag": "hot"
+    },
+    {
+      "id": 13,
+      "categoryId": 3,
+      "name": "Decorative Christmas Fox",
+      "price": 50,
+      "stockQuantity": 35,
+      "imageUrl": "/assets/images/product/s328/product-13.webp",
+      "description": "A warm and decorative Christmas fox ornament."
+    },
+    {
+      "id": 14,
+      "categoryId": 5,
+      "name": "Digital Camera System",
+      "price": 350,
+      "stockQuantity": 8,
+      "imageUrl": "/assets/images/product/s328/product-14.webp",
+      "description": "Vintage-styled digital camera system."
+    },
+    {
+      "id": 15,
+      "categoryId": 2,
+      "name": "Electric Egg Blender",
+      "price": 200,
+      "stockQuantity": 15,
+      "imageUrl": "/assets/images/product/s328/product-15.webp",
+      "description": "Powerful electric egg blender for effortless baking."
+    }
+  ]
+}
