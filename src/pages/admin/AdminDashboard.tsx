@@ -19,10 +19,9 @@ import {
 import {
   getAdminOrders,
   getProducts,
-  getAdminUsers,
-  Order,
-  Product
+  getAdminUsers
 } from '../../services/api';
+import type { Order, Product } from '../../services/api';
 import toast from 'react-hot-toast';
 
 const formatPrice = (price: number) =>

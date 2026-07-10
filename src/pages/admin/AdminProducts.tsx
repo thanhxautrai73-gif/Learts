@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  Plus, Search, Edit2, Trash2, Filter, ChevronDown,
+  Plus, Search, Edit2, Trash2, Filter,
   Package, Tag, DollarSign, Box, X, Check, Image as ImageIcon,
   ChevronLeft, ChevronRight, AlertCircle, RefreshCw
 } from 'lucide-react';
@@ -10,10 +10,9 @@ import {
   getCategories,
   createProduct,
   updateProduct,
-  deleteProduct,
-  Product,
-  Category
+  deleteProduct
 } from '../../services/api';
+import type { Product, Category } from '../../services/api';
 
 const PAGE_SIZE = 10;
 
@@ -43,12 +42,13 @@ export const AdminProducts: React.FC = () => {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState('');
-  const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const fetchProducts = async (page = 1, q = searchQuery, catId = filterCategory, sort = sortBy) => {
+  const fetchProducts = async (page?: number, q: string = searchQuery, catId: number | '' = filterCategory, sort: string = sortBy) => {
+    const activePage = page !== undefined ? page : 1;
     setLoading(true);
     try {
-      const params: any = { page, limit: PAGE_SIZE };
+      const params: any = { page: activePage, limit: PAGE_SIZE };
       if (q) params.q = q;
       if (catId) params.categoryId = catId;
       if (sort) params.sort = sort;

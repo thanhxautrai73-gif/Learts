@@ -3,10 +3,11 @@ import {
   Search, Filter, RefreshCw, Eye, ChevronDown,
   Clock, CheckCircle, XCircle, Package, Phone,
   Mail, MapPin, ShoppingCart, Calendar, DollarSign,
-  ChevronLeft, ChevronRight, X, Printer, TrendingUp, AlertCircle
+  ChevronLeft, ChevronRight, X, TrendingUp
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getAdminOrders, updateOrderStatus, Order } from '../../services/api';
+import { getAdminOrders, updateOrderStatus } from '../../services/api';
+import type { Order } from '../../services/api';
 
 const STATUS_OPTIONS = ['Pending', 'Processing', 'Completed', 'Cancelled'];
 
