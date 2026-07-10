@@ -19,12 +19,12 @@ const {
   Category,
   Product,
   Order
-} = require('./models.cjs');
+} = require('./models.js');
 
 const {
   authenticateAdmin,
   JWT_SECRET
-} = require('./middleware.cjs');
+} = require('./middleware.js');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
